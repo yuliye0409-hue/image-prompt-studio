@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Prompt Studio 侧边栏</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body data-surface="panel">
+    <main class="shell">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Image Prompt Studio</p>
+          <h1>固定插件界面</h1>
+        </div>
+        <div class="header-actions">
+          <button class="icon-button" id="pinPanel" title="已固定在侧边栏" aria-label="已固定在侧边栏">⇲</button>
+          <button class="icon-button" id="openOptions" title="设置" aria-label="设置">⚙</button>
+        </div>
+      </header>
+
+      <section class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="添加最多六张图片，支持点击上传、拖拽或 Ctrl+V 粘贴">
+        <input id="fileInput" type="file" accept="image/*" multiple>
+        <div class="drop-copy">
+          <strong>添加图片</strong>
+          <span>点击上传、拖拽图片，或按 Ctrl+V 粘贴，最多 6 张</span>
+        </div>
+      </section>
+
+      <section class="logic-panel">
+        <label for="promptStyle">提示词逻辑</label>
+        <select id="promptStyle">
+          <option value="universal">通用图生文 Prompt</option>
+          <option value="productAppearance">产品外观分析 Prompt</option>
+          <option value="localizedMarketing">本地化营销排版 Prompt</option>
+        </select>
+        <p id="promptStyleHint">综合主体、构图、背景、灯光和风格生成通用 Prompt，只预留纯净留白空间，不生成文案。</p>
+      </section>
+
+      <section class="context-panel" id="marketingContext" hidden>
+        <label for="targetMarket">
+          <span>目标市场</span>
+          <input id="targetMarket" type="text" maxlength="120" placeholder="例如：美国、欧洲、日本、东南亚">
+        </label>
+        <label for="sellingPoints">
+          <span>产品/卖点</span>
+          <textarea id="sellingPoints" rows="3" maxlength="600" placeholder="例如：轻量、防水、长续航、户外通勤、节日礼赠"></textarea>
+        </label>
+      </section>
+
+      <section class="preview" id="previewSection" hidden>
+        <div class="preview-grid" id="previewGrid"></div>
+      </section>
+
+      <section class="status-card" id="statusBox" role="status" aria-live="polite">
+        <div class="status-head">
+          <strong id="statusTitle">准备就绪</strong>
+          <span id="progressValue">0%</span>
+        </div>
+        <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
+        <p id="statusText">侧边栏会持续显示进度；可上传、拖拽或粘贴图片。</p>
+        <p class="status-meta" id="statusMeta"></p>
+      </section>
+
+      <section class="error-panel" id="errorSection" hidden>
+        <div class="error-title">生成遇到问题</div>
+        <dl>
+          <div><dt>错误码</dt><dd id="errorCode">-</dd></div>
+          <div><dt>原因</dt><dd id="errorMessage">-</dd></div>
+          <div><dt>建议</dt><dd id="errorSuggestion">-</dd></div>
+        </dl>
+        <div class="error-actions">
+          <button id="retryButton" type="button">重试</button>
+          <button id="openSettingsFromError" type="button">检查设置</button>
+        </div>
+      </section>
+
+      <section class="result" id="resultSection" hidden>
+        <div class="result-toolbar">
+          <h2>生成结果</h2>
+          <button id="copyResult" type="button">复制</button>
+        </div>
+        <textarea id="resultText" spellcheck="false"></textarea>
+      </section>
+
+      <footer class="footer">
+        <button id="analyzeButton" class="primary" type="button" disabled>生成提示词</button>
+        <button id="stopButton" class="secondary-action" type="button" disabled>结束进程</button>
+      </footer>
+    </main>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

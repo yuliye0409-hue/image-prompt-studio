@@ -21,6 +21,13 @@
   root.querySelector("header").after(holdRow);
   const $ = id => root.getElementById(id);
   root.innerHTML += "<style>#logic,#generate,#stop,#marketing,#hold,.hold-row,#settings{display:none!important}</style>";
+  const apiSetup = document.createElement("div");
+  apiSetup.id = "apiSetup";
+  apiSetup.hidden = true;
+  apiSetup.innerHTML = `<span>尚未配置 API Key</span><button id="openApiSettings" type="button">添加 API Key</button>`;
+  apiSetup.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px;padding:10px 12px;border:1px solid #f0b19d66;border-radius:6px;background:#522b2a66;color:#ffd3c7;font-size:12px";
+  apiSetup.querySelector("button").style.cssText = "flex:0 0 auto;background:#bce9d8;color:#152a23;border:1px solid #daf9ee;border-radius:6px;font:inherit;font-weight:600;padding:7px 10px;cursor:pointer";
+  root.querySelector("#status").after(apiSetup);
   const UNIVERSAL_HOVER_DELAY_MS = 2000;
   $("logic").closest("label")?.setAttribute("hidden", "");
   $("generate").parentElement?.setAttribute("hidden", "");
@@ -133,6 +140,7 @@
     motion.finished.then(() => { if(epoch === visibilityEpoch) host.style.display = "none"; }).catch(() => {});
   }
   function feedback(text, state = "idle") { $("status").textContent = text; $("status").dataset.state = state; }
+  function setApiSetupVisible(visible) { apiSetup.hidden = !visible; }
   function remember() { if(source) cache.set(source, {text:$("output").value,zh:$("outputZh").value,en:$("outputEn").value,logic:$("logic").value,market:$("market").value,points:$("points").value}); if(cache.size>30) cache.delete(cache.keys().next().value); }
   function position() {
     if(!image?.isConnected || host.style.display === "none") return;
@@ -227,6 +235,8 @@
   window.addEventListener("resize",position); window.addEventListener("scroll",position,{passive:true});
   $("logic").onchange=()=>{$("marketing").hidden=$("logic").value!=="localizedMarketing";position();};
   function send(message) {return new Promise((resolve,reject)=>{try{chrome.runtime.sendMessage(message,response=>{if(chrome.runtime.lastError) reject(new Error("扩展连接失效，请刷新当前网页。"));else if(!response?.ok) reject(new Error(response?.error?.message||"操作失败"));else resolve(response);});}catch{reject(new Error("请刷新当前网页后重试。"));}});}
+  apiSetup.querySelector("#openApiSettings").onclick = () => send({type:"openSettings"}).catch(error => feedback(error.message, "error"));
+  send({type:"getSettings"}).then(({settings}) => setApiSetupVisible(!settings?.apiKey)).catch(() => {});
   async function getInput(){
     if(!source.startsWith("blob:")) return {sourceUrl:source};
     const blob=await(await fetch(source)).blob(); if(blob.size>20*1024*1024) throw new Error("图片超过20MB，请下载压缩后使用。");
@@ -236,7 +246,7 @@
   $("generate").onclick=async()=>{
     if(busy||!source)return; busy=true;jobId=null;$("generate").disabled=true;$("stop").disabled=false;$("logic").disabled=true;feedback("正在读取图片…","busy");
     try{const input=await getInput();const response=await send({type:"startAnalysis",...input,sourceType:"pageHover",promptStyle:"universal",promptContext:{}});$("output").value=typeof response.result==="string"?response.result:"";feedback("生成完成","success");showLanguages($("output").value);remember();}
-    catch(error){feedback(error.message,"error");}finally{busy=false;$("generate").disabled=false;$("stop").disabled=true;$("logic").disabled=false; if($("status").textContent === "生成完成") feedback("生成完成","success");}
+    catch(error){setApiSetupVisible(error.message.includes("API Key"));feedback(error.message,"error");}finally{busy=false;$("generate").disabled=false;$("stop").disabled=true;$("logic").disabled=false; if($("status").textContent === "生成完成") feedback("生成完成","success");}
   };
   chrome.storage.onChanged.addListener((changes,area)=>{const job=changes.imagePromptStudioLastResult?.newValue;if(!busy||area!=="local"||!job||job.sourceType!=="pageHover"||job.source!==source)return;if(!jobId)jobId=job.id;if(job.id===jobId)$("status").textContent=(job.title||"处理中")+" · "+(job.progress||0)+"%";});
   $("stop").onclick=()=>{if(jobId)send({type:"cancelAnalysis",jobId}).catch(error=>{$("status").textContent=error.message;});else $("status").textContent="正在读取图片，请等待任务建立后再结束。";};

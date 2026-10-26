@@ -128,7 +128,6 @@
   }
   function open(target, replay = false) {
     if(busy && target!==image) return;
-    if (engaged && host.style.display !== "none" && target !== image) return;
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
     if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); if (replay && !busy) playOpenAnimation(target); return; }
     ++visibilityEpoch; motion?.cancel();

@@ -26,6 +26,20 @@ vm.runInContext(fs.readFileSync("src/image-hover.js","utf8"),context);
   elements.get("output").oninput();
   assert.equal(elements.get("outputZh").value, "黑色金属产品，纯净留白。");
   assert.equal(elements.get("outputEn").value, "Black metal product, clean negative space.");
+  for (const text of [
+    "【中文提示词】黑色金属产品。\n【英文提示词】Black metal product.",
+    "**中文 Prompt：**\n黑色金属产品。\n**English Prompt：**\nBlack metal product.",
+    "中文版：黑色金属产品。\nEnglish Version: Black metal product."
+  ]) {
+    elements.get("output").value = text; elements.get("output").oninput();
+    assert.equal(elements.get("outputZh").value, "黑色金属产品。");
+    assert.equal(elements.get("outputEn").value, "Black metal product.");
+  }
+  elements.get("output").value = "Soft cyan light from above. Deep blacks, clean negative space.";
+  elements.get("output").oninput();
+  assert.equal(elements.get("outputZh").value, "");
+  assert.match(elements.get("outputEn").value, /Soft cyan light/);
+  assert.match(elements.get("status").textContent, /仅返回或识别到英文/);
   assert.equal(elements.get("generate").disabled,false);
   elements.get("close").onclick();assert.equal(host.style.display,"none");
   hit = new Image();

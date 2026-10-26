@@ -27,27 +27,49 @@
   originalLabel.hidden = true;
   $("copy").hidden = true;
   function splitResult(text) {
-    const lines = text.split(/\r?\n/);
+    const normalized = text.replace(/\r\n/g, "\n").replace(/\\n/g, "\n")
+      .replace(/(?:\*\*|【|\[|#{1,6})\s*((?:中文|英文|Chinese|English)(?:\s*(?:Prompt|提示词|版|Version))?)\s*(?:】|\]|\*\*)\s*[:：]?/gi, "\n$1：");
+    const lines = normalized.split("\n");
     const blocks = { zh: [], en: [] };
+    const unassigned = [];
     let language = null;
     for (const line of lines) {
       const heading = line.replace(/^[\s#>*\d.、)（(\-]+/, "").replace(/\*\*/g, "").trim();
-      const match = heading.match(/^(中文(?:提示词|\s*Prompt)?|Chinese(?:\s+Prompt)?|英文(?:提示词|\s*Prompt)?|English(?:\s+Prompt)?)\s*[:：]?\s*(.*)$/i);
+      const match = heading.match(/^(中文|英文|Chinese|English)(?:\s*(?:Prompt|提示词|版|Version))?\s*(?:[:：]\s*(.*)|$)/i);
       if (match) {
         language = /^(中文|Chinese)/i.test(match[1]) ? "zh" : "en";
         if (match[2]) blocks[language].push(match[2]);
       } else if (/^(?:图片\s*\d|Image\s*\d|统一排版系统|文案本地化重构|最终选定|辅助小字|排版视觉规划|排版适配)/i.test(heading)) language = null;
       else if (language) blocks[language].push(line);
+      else unassigned.push(line);
     }
-    return { zh: blocks.zh.join("\n").trim(), en: blocks.en.join("\n").trim() };
+    // Route unlabelled paragraphs by their actual language; never place English in Chinese by default.
+    function classify(value) {
+      const chinese = (value.match(/[\u3400-\u9fff]/g) || []).length;
+      const latin = (value.match(/[a-z]/gi) || []).length;
+      if (!chinese && latin > 0) return "en";
+      if (chinese > 0 && chinese * 4 >= latin) return "zh";
+      return null;
+    }
+    const result = { zh: "", en: "" };
+    for (const key of ["zh", "en"]) {
+      const value = blocks[key].join("\n").trim();
+      if (value) { const actual = classify(value) || key; result[actual] += (result[actual] ? "\n\n" : "") + value; }
+    }
+    if (!result.zh || !result.en) {
+      for (const paragraph of unassigned.join("\n").split(/\n\s*\n/)) {
+        const value = paragraph.trim(), actual = classify(value);
+        if (value && actual) result[actual] += (result[actual] ? "\n\n" : "") + value;
+      }
+    }
+    return result;
   }
   function showLanguages(text) {
     const parts = splitResult(text);
     $("outputZh").value = parts.zh; $("outputEn").value = parts.en;
     if (text && !parts.zh && !parts.en) {
-      $("outputZh").value = text;
-      feedback("未识别到语言标题，原始结果保留在中文区域，请手动整理。");
-    } else if (text && (!parts.zh || !parts.en)) feedback("仅识别到一种语言的提示词，请检查结果。");
+      feedback("返回内容无法识别为中英文提示词，请重新生成。","error");
+    } else if (text && (!parts.zh || !parts.en)) feedback("本次仅返回或识别到" + (parts.zh ? "中文" : "英文") + "提示词，请重新生成补齐另一语言。","error");
   }
   async function copyLanguage(id, name) {
     const field = $(id);
@@ -90,12 +112,12 @@
     remember(); image=target; source=target.currentSrc||target.src;
     const saved=cache.get(source);
     $("output").value=saved?.text||""; $("logic").value=saved?.logic||"universal";
+    if (!busy) feedback(saved?.text ? "已恢复此图的提示词" : "准备就绪");
     showLanguages(saved?.text || "");
     if (saved) { $("outputZh").value = saved.zh ?? $("outputZh").value; $("outputEn").value = saved.en ?? $("outputEn").value; }
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
-    if (!busy) feedback(saved?.text ? "已恢复此图的提示词" : "准备就绪");
     if(wasHidden && !reducedMotion() && host.animate) motion = host.animate([{opacity:0,transform:"translateY(8px) scale(.975)"},{opacity:1,transform:"translateY(0) scale(1)"}],{duration:230,easing:"cubic-bezier(.2,.8,.2,1)"});
   }
   const launcher = document.createElement("button");

@@ -80,7 +80,7 @@
   async function copyLanguage(id, name) {
     const field = $(id);
     if (!field.value.trim()) { feedback(name + "提示词为空"); return; }
-    try { await navigator.clipboard.writeText(field.value); feedback("已复制" + name); }
+    try { await navigator.clipboard.writeText(field.value); feedback("已复制" + name); finishInteraction(); }
     catch { field.focus(); field.select(); feedback("请使用系统复制命令"); }
   }
   $("copyZh").onclick = () => copyLanguage("outputZh", "中文");
@@ -88,7 +88,13 @@
   $("outputZh").oninput = () => remember();
   $("outputEn").oninput = () => remember();
   const cache = new Map();
-  let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false;
+  let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
+  function finishInteraction() {
+    dismissedImage = image;
+    clearTimeout(timer); clearTimeout(leaveTimer);
+    launcher.style.display = "none";
+    closePanel();
+  }
   const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   function closePanel() {
     remember();
@@ -96,7 +102,7 @@
     const epoch = ++visibilityEpoch;
     motion?.cancel();
     if (reducedMotion() || !host.animate) { host.style.display = "none"; return; }
-    motion = host.animate([{opacity:1,transform:"translateY(0) scale(1)"},{opacity:0,transform:"translateY(5px) scale(.985)"}],{duration:140,easing:"ease-out"});
+    motion = host.animate([{opacity:1,transform:"translateY(0) scale(1)"},{opacity:0,transform:"translateY(8px) scale(.82)"}],{duration:180,easing:"cubic-bezier(.4,0,1,1)"});
     motion.finished.then(() => { if(epoch === visibilityEpoch) host.style.display = "none"; }).catch(() => {});
   }
   function feedback(text, state = "idle") { $("status").textContent = text; $("status").dataset.state = state; }
@@ -125,7 +131,9 @@
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
-    if(wasHidden && !reducedMotion() && host.animate) motion = host.animate([{opacity:0,transform:"translateY(8px) scale(.975)"},{opacity:1,transform:"translateY(0) scale(1)"}],{duration:230,easing:"cubic-bezier(.2,.8,.2,1)"});
+    const imageRect = target.getBoundingClientRect();
+    host.style.transformOrigin = (imageRect.left > parseFloat(host.style.left) ? "right" : "left") + " top";
+    if(wasHidden && !reducedMotion() && host.animate) motion = host.animate([{opacity:0,transform:"translateY(12px) scale(.72)"},{opacity:1,transform:"translateY(0) scale(1)"}],{duration:300,easing:"cubic-bezier(.16,1,.3,1)"});
   }
   const launcher = document.createElement("button");
   launcher.textContent = "↗";
@@ -146,6 +154,8 @@
       if (target) { const r = target.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) target = null; }
     }
     if (target) { const r = target.getBoundingClientRect(); if (r.width < 64 || r.height < 64) target = null; }
+    if (dismissedImage && target === dismissedImage) return;
+    if (target !== dismissedImage) dismissedImage = null;
     if (target === candidate) { if (target) clearTimeout(leaveTimer); return; }
     candidate = target; clearTimeout(timer);
     if (target) {
@@ -182,7 +192,7 @@
   chrome.storage.onChanged.addListener((changes,area)=>{const job=changes.imagePromptStudioLastResult?.newValue;if(!busy||area!=="local"||!job||job.sourceType!=="pageHover"||job.source!==source)return;if(!jobId)jobId=job.id;if(job.id===jobId)$("status").textContent=(job.title||"处理中")+" · "+(job.progress||0)+"%";});
   $("stop").onclick=()=>{if(jobId)send({type:"cancelAnalysis",jobId}).catch(error=>{$("status").textContent=error.message;});else $("status").textContent="正在读取图片，请等待任务建立后再结束。";};
   $("settings").onclick=()=>send({type:"openSettings"}).catch(error=>{$("status").textContent=error.message;});
-  $("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("output").value);$("status").textContent="已复制";}catch{$("output").focus();$("output").select();$("status").textContent="请使用系统复制命令";}};
+  $("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("output").value);$("status").textContent="已复制";finishInteraction();}catch{$("output").focus();$("output").select();$("status").textContent="请使用系统复制命令";}};
   $("output").oninput = () => { showLanguages($("output").value); remember(); };
   $("copy").textContent = "复制完整结果";
   $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();showLanguages($("output").value);remember();}catch{$("outputZh").focus();$("status").textContent="请在中文或英文文本框内使用系统粘贴命令";}};

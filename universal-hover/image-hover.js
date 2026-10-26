@@ -120,17 +120,17 @@
   const HOVER_DELAY_MS = 700;
   const LEAVE_DELAY_MS = 2500;
   let engaged = false;
-  let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
+  let image, source, timer, generationTimer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
   function finishInteraction() {
     dismissedImage = image;
-    clearTimeout(timer); clearTimeout(leaveTimer);
+    clearTimeout(timer); clearTimeout(generationTimer); clearTimeout(leaveTimer);
     launcher.style.display = "none";
     closePanel();
   }
   const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   function closePanel() {
     remember();
-    clearTimeout(timer); clearTimeout(leaveTimer);
+    clearTimeout(timer); clearTimeout(generationTimer); clearTimeout(leaveTimer);
     engaged = false;
     closing = true;
     const epoch = ++visibilityEpoch;
@@ -205,14 +205,15 @@
     if (dismissedImage && target === dismissedImage) return;
     if (target !== dismissedImage) dismissedImage = null;
     if (target === candidate) { if (target) clearTimeout(leaveTimer); return; }
-    candidate = target; clearTimeout(timer);
+    candidate = target; clearTimeout(timer); clearTimeout(generationTimer);
     if (target) {
       clearTimeout(leaveTimer);
       const rect = target.getBoundingClientRect();
       launcher.style.display = "block";
       launcher.style.left = Math.max(4, Math.min(innerWidth - 38, rect.left + 8)) + "px";
       launcher.style.top = Math.max(4, Math.min(innerHeight - 38, rect.top + 8)) + "px";
-      timer = setTimeout(() => { if (candidate === target && target.isConnected) { open(target, true); $("logic").value = "universal"; $("generate").click(); } }, UNIVERSAL_HOVER_DELAY_MS);
+      timer = setTimeout(() => { if (candidate === target && target.isConnected) open(target, true); }, HOVER_DELAY_MS);
+      generationTimer = setTimeout(() => { if (candidate === target && target.isConnected && !busy) { open(target, true); $("logic").value = "universal"; $("generate").click(); } }, UNIVERSAL_HOVER_DELAY_MS);
     } else {
       launcher.style.display = "none";
       leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !engaged && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);

@@ -24,10 +24,8 @@
   const languageAreas = document.createElement("div");
   languageAreas.innerHTML = `<style>.language-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;color:#d1d6df;font-size:12px}.language-head button{min-height:28px;padding:4px 9px;font-size:11px}.language-output{min-height:120px;line-height:1.7;padding:12px}details{margin-top:12px}summary{cursor:pointer;color:#aeb5c0;font-size:11px}summary:hover{color:#fff}</style><div class="language-head"><label for="outputZh">中文提示词</label><button id="copyZh">复制中文</button></div><textarea class="language-output" id="outputZh" aria-label="中文提示词" rows="5"></textarea><div class="language-head"><label for="outputEn">English Prompt</label><button id="copyEn">复制英文</button></div><textarea class="language-output" id="outputEn" aria-label="英文提示词" rows="5"></textarea>`;
   originalLabel.before(languageAreas);
-  const fullResult = document.createElement("details");
-  const summary = document.createElement("summary");
-  summary.textContent = "完整结果 / 营销分析";
-  originalLabel.before(fullResult); fullResult.append(summary, originalLabel);
+  originalLabel.hidden = true;
+  $("copy").hidden = true;
   function splitResult(text) {
     const lines = text.split(/\r?\n/);
     const blocks = { zh: [], en: [] };
@@ -46,8 +44,10 @@
   function showLanguages(text) {
     const parts = splitResult(text);
     $("outputZh").value = parts.zh; $("outputEn").value = parts.en;
-    fullResult.open = !!text && (!parts.zh || !parts.en);
-    if (fullResult.open) feedback("未识别到完整中英文标题，请查看完整结果并手动整理。");
+    if (text && !parts.zh && !parts.en) {
+      $("outputZh").value = text;
+      feedback("未识别到语言标题，原始结果保留在中文区域，请手动整理。");
+    } else if (text && (!parts.zh || !parts.en)) feedback("仅识别到一种语言的提示词，请检查结果。");
   }
   async function copyLanguage(id, name) {
     const field = $(id);
@@ -156,5 +156,5 @@
   $("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("output").value);$("status").textContent="已复制";}catch{$("output").focus();$("output").select();$("status").textContent="请使用系统复制命令";}};
   $("output").oninput = () => { showLanguages($("output").value); remember(); };
   $("copy").textContent = "复制完整结果";
-  $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();showLanguages($("output").value);remember();}catch{fullResult.open=true;$("output").focus();$("status").textContent="请在文本框内使用系统粘贴命令";}};
+  $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();showLanguages($("output").value);remember();}catch{$("outputZh").focus();$("status").textContent="请在中文或英文文本框内使用系统粘贴命令";}};
 })();

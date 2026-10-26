@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Image Prompt Studio",
   "description": "上传或右键图片，生成中文和英文两套专业文生图 Prompt。",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "content_scripts": [{ "matches": ["http://*/*", "https://*/*"], "js": ["src/image-hover.js"], "run_at": "document_idle", "all_frames": true }],
   "action": {
     "default_title": "Image Prompt Studio"

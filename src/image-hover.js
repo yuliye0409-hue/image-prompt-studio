@@ -88,6 +88,9 @@
   $("outputZh").oninput = () => remember();
   $("outputEn").oninput = () => remember();
   const cache = new Map();
+  const HOVER_DELAY_MS = 1200;
+  const LEAVE_DELAY_MS = 2500;
+  let engaged = false;
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
   function finishInteraction() {
     dismissedImage = image;
@@ -98,6 +101,8 @@
   const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   function closePanel() {
     remember();
+    clearTimeout(timer); clearTimeout(leaveTimer);
+    engaged = false;
     closing = true;
     const epoch = ++visibilityEpoch;
     motion?.cancel();
@@ -116,6 +121,7 @@
   }
   function open(target) {
     if(busy && target!==image) return;
+    if (engaged && host.style.display !== "none" && target !== image) return;
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
     if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); return; }
     const wasHidden = host.style.display === "none";
@@ -164,15 +170,18 @@
       launcher.style.display = "block";
       launcher.style.left = Math.max(4, Math.min(innerWidth - 38, rect.left + 8)) + "px";
       launcher.style.top = Math.max(4, Math.min(innerHeight - 38, rect.top + 8)) + "px";
-      timer = setTimeout(() => open(target), 450);
+      timer = setTimeout(() => { if (candidate === target && target.isConnected) open(target); }, HOVER_DELAY_MS);
     } else {
       launcher.style.display = "none";
-      leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !$("hold").checked) closePanel(); }, 900);
+      leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !engaged && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);
     }
   }
   document.addEventListener("pointerover", detectImage, true);
   document.addEventListener("pointermove", detectImage, true);
-  host.addEventListener("pointerenter",()=>clearTimeout(leaveTimer));
+  function engage() { engaged = true; clearTimeout(timer); clearTimeout(leaveTimer); }
+  host.addEventListener("pointerenter", engage);
+  root.addEventListener("focusin", engage);
+  root.addEventListener("pointerdown", engage);
   $("close").onclick=closePanel;
   root.addEventListener("keydown",event=>{if(event.key==="Escape") $("close").click();});
   window.addEventListener("resize",position); window.addEventListener("scroll",position,{passive:true});

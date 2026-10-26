@@ -5,7 +5,7 @@ const settingsKey = 'imagePromptStudioSettings';
 const storage = {
   async get(key, callback) {
     let value;
-    try { value = JSON.parse(sessionStorage.getItem(key) || localStorage.getItem(key) || 'null'); } catch {}
+    try { value = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
     const result = { [key]: memory[key] ?? value };
     callback?.(result);
     return result;
@@ -17,8 +17,7 @@ const storage = {
       memory[key] = value;
       try {
         if (key === settingsKey) {
-          sessionStorage.setItem(key, JSON.stringify(value));
-          localStorage.setItem(key, JSON.stringify({ ...value, apiKey: '' }));
+          localStorage.setItem(key, JSON.stringify(value));
         }
       } catch {}
     }
@@ -41,19 +40,9 @@ window.chrome = {
 };
 window.addEventListener('storage', async event => {
   if (event.key === settingsKey) {
-    const result = await storage.get(settingsKey);
     const saved = JSON.parse(event.newValue || '{}');
-    memory[settingsKey] = { ...saved, apiKey: result[settingsKey]?.apiKey || '' };
+    memory[settingsKey] = saved;
+    listeners.forEach(listener => listener({ [settingsKey]: { newValue: saved } }, 'local'));
   }
 });
 await import('./background.js');
-// API keys stay in this tab session; settings opened in another tab notify the opener.
-const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('ips-settings') : null;
-const originalSet = storage.set.bind(storage);
-storage.set = async values => {
-  await originalSet(values);
-  if (values[settingsKey]) channel?.postMessage(values[settingsKey]);
-};
-if (channel) channel.onmessage = async event => {
-  if (event.data && typeof event.data === 'object') await originalSet({ [settingsKey]: event.data });
-};

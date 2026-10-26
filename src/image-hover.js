@@ -119,12 +119,18 @@
     host.style.left=Math.max(12,Math.min(left,innerWidth-width-12))+"px";
     host.style.top=Math.max(12,Math.min(r.top,innerHeight-host.getBoundingClientRect().height-12))+"px";
   }
-  function open(target) {
+  function playOpenAnimation(target) {
+    if (reducedMotion() || !host.animate) return;
+    motion?.cancel();
+    const rect = target.getBoundingClientRect();
+    host.style.transformOrigin = (rect.left > parseFloat(host.style.left) ? "right" : "left") + " top";
+    motion = host.animate([{opacity:0,transform:"translateY(16px) scale(.5)",offset:0},{opacity:1,transform:"translateY(-2px) scale(1.025)",offset:.78},{opacity:1,transform:"translateY(0) scale(1)",offset:1}],{duration:360,easing:"cubic-bezier(.2,.75,.25,1)"});
+  }
+  function open(target, replay = false) {
     if(busy && target!==image) return;
     if (engaged && host.style.display !== "none" && target !== image) return;
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
-    if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); return; }
-    const wasHidden = host.style.display === "none";
+    if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); if (replay && !busy) playOpenAnimation(target); return; }
     ++visibilityEpoch; motion?.cancel();
     closing = false;
     remember(); image=target; source=target.currentSrc||target.src;
@@ -137,9 +143,7 @@
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
-    const imageRect = target.getBoundingClientRect();
-    host.style.transformOrigin = (imageRect.left > parseFloat(host.style.left) ? "right" : "left") + " top";
-    if(wasHidden && !reducedMotion() && host.animate) motion = host.animate([{opacity:0,transform:"translateY(16px) scale(.5)",offset:0},{opacity:1,transform:"translateY(-2px) scale(1.025)",offset:.78},{opacity:1,transform:"translateY(0) scale(1)",offset:1}],{duration:360,easing:"cubic-bezier(.2,.75,.25,1)"});
+    playOpenAnimation(target);
   }
   const launcher = document.createElement("button");
   launcher.textContent = "↗";
@@ -147,7 +151,7 @@
   launcher.setAttribute("aria-label", "打开图片提示词");
   launcher.style.cssText = "all:initial;position:fixed;display:none;z-index:2147483647;width:34px;height:34px;border:1px solid #ffffff50;border-radius:8px;background:rgba(34,43,43,.72);backdrop-filter:blur(18px);color:#d8f7eb;text-align:center;font:22px/34px system-ui;cursor:pointer;box-shadow:0 4px 16px #0004;transition:background .16s,transform .16s";
   document.documentElement.append(launcher);
-  launcher.onclick = () => { if (candidate) open(candidate); };
+  launcher.onclick = () => { if (candidate) open(candidate, true); };
   // Resolve images beneath site overlays instead of relying on event.target.
   let candidate = null;
   function detectImage(event) {
@@ -170,7 +174,7 @@
       launcher.style.display = "block";
       launcher.style.left = Math.max(4, Math.min(innerWidth - 38, rect.left + 8)) + "px";
       launcher.style.top = Math.max(4, Math.min(innerHeight - 38, rect.top + 8)) + "px";
-      timer = setTimeout(() => { if (candidate === target && target.isConnected) open(target); }, HOVER_DELAY_MS);
+      timer = setTimeout(() => { if (candidate === target && target.isConnected) open(target, true); }, HOVER_DELAY_MS);
     } else {
       launcher.style.display = "none";
       leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !engaged && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);

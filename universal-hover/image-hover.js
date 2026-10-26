@@ -20,7 +20,7 @@
   const holdRow = root.getElementById("hold").parentElement;
   root.querySelector("header").after(holdRow);
   const $ = id => root.getElementById(id);
-  root.innerHTML += "<style>#logic,#generate,#stop,#marketing,#hold,.hold-row,#settings{display:none!important}</style>";
+  root.innerHTML += "<style>#logic,#stop,#marketing,#hold,.hold-row,#settings{display:none!important}</style>";
   const apiSetup = document.createElement("div");
   apiSetup.id = "apiSetup";
   apiSetup.hidden = true;
@@ -116,7 +116,7 @@
   $("outputZh").oninput = () => remember();
   $("outputEn").oninput = () => remember();
   const cache = new Map();
-  const HOVER_DELAY_MS = 700;
+  const HOVER_DELAY_MS = 1200;
   const LEAVE_DELAY_MS = 2500;
   let engaged = false;
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
@@ -211,7 +211,7 @@
       launcher.style.display = "block";
       launcher.style.left = Math.max(4, Math.min(innerWidth - 38, rect.left + 8)) + "px";
       launcher.style.top = Math.max(4, Math.min(innerHeight - 38, rect.top + 8)) + "px";
-      timer = setTimeout(() => { if (candidate === target && target.isConnected && !busy) { open(target, true); $("logic").value = "universal"; $("generate").click(); } }, HOVER_DELAY_MS);
+      timer = setTimeout(() => { if (candidate === target && target.isConnected && !busy) open(target, true); }, HOVER_DELAY_MS);
     } else {
       launcher.style.display = "none";
       leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !engaged && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);

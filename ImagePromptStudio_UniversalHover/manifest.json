@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Image Prompt Studio Universal Hover Edition",
   "description": "鼠标停留网页图片超过 2 秒，自动生成中文和英文通用图生图提示词。",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "action": { "default_title": "Image Prompt Studio - Universal Hover" },
   "options_page": "options.html",
   "background": { "service_worker": "background.js", "type": "module" },

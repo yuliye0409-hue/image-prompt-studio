@@ -4,7 +4,7 @@
   host.id = "ips-hover-host";
   host.style.cssText = "position:fixed;z-index:2147483647;display:none";
   const root = host.attachShadow({mode:"closed"});
-  root.innerHTML = `<style>*{box-sizing:border-box}section{font:13px/1.5 system-ui;color:#eee;width:min(390px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:18px;background:rgba(25,28,32,.96);backdrop-filter:blur(28px);border:1px solid #ffffff35;border-radius:8px;box-shadow:0 20px 70px #0008}header,.row{display:flex;gap:8px;justify-content:space-between}label{display:grid;gap:6px;margin:12px 0}select,input,textarea,button{font:inherit;color:#eee;background:#121519;border:1px solid #ffffff30;border-radius:6px;padding:9px}select,input,textarea{width:100%}textarea{resize:vertical}.row button{flex:1}button{cursor:pointer}button:disabled{opacity:.5}#status{white-space:pre-wrap;overflow-wrap:anywhere}#generate{background:#bce9d8;color:#152a23}[hidden]{display:none!important}</style><section role="dialog" aria-label="网页图片提示词"><header><strong>Image Prompt Studio</strong><button id="close" aria-label="关闭">×</button></header><label>提示词逻辑<select id="logic"><option value="universal">通用图生文</option><option value="productAppearance">产品外观分析</option><option value="localizedMarketing">本地化营销排版</option></select></label><div id="marketing" hidden><label>目标市场<input id="market" maxlength="120"></label><label>产品 / 卖点<textarea id="points" rows="2" maxlength="600"></textarea></label></div><div class="row"><button id="generate">生成此图提示词</button><button id="stop" disabled>结束进程</button></div><p id="status" role="status">准备就绪</p><label>提示词<textarea id="output" rows="7"></textarea></label><div class="row"><button id="copy">复制</button><button id="paste">粘贴</button><button id="settings">设置</button></div></section>`;
+  root.innerHTML = `<style>*{box-sizing:border-box}section{font:13px/1.5 system-ui;color:#eee;width:min(390px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:18px;background:rgba(25,28,32,.96);backdrop-filter:blur(28px);border:1px solid #ffffff35;border-radius:8px;box-shadow:0 20px 70px #0008}header,.row{display:flex;gap:8px;justify-content:space-between}label{display:grid;gap:6px;margin:12px 0}select,input,textarea,button{font:inherit;color:#eee;background:#121519;border:1px solid #ffffff30;border-radius:6px;padding:9px}select,input,textarea{width:100%}textarea{resize:vertical}.row button{flex:1}button{cursor:pointer}button:disabled{opacity:.5}#status{white-space:pre-wrap;overflow-wrap:anywhere}#generate{background:#bce9d8;color:#152a23}[hidden]{display:none!important}</style><section role="dialog" aria-label="网页图片提示词"><header><strong>Image Prompt Studio</strong><button id="close" aria-label="关闭">×</button></header><label>提示词逻辑<select id="logic"><option value="universal">通用图生文</option><option value="productAppearance">产品外观分析</option><option value="localizedMarketing">本地化营销排版</option></select></label><div id="marketing" hidden><label>目标市场<input id="market" maxlength="120"></label><label>产品 / 卖点<textarea id="points" rows="2" maxlength="600"></textarea></label></div><div class="row"><button id="generate">生成此图提示词</button><button id="stop" disabled>结束进程</button></div><p id="status" role="status">准备就绪</p><label>提示词<textarea id="output" rows="7"></textarea></label><div class="row"><button id="copy">复制</button><button id="settings">设置</button></div></section>`;
   document.documentElement.append(host);
   root.innerHTML += `<style>
     :host{color-scheme:dark;--ink:#f5f5f7;--muted:#aeb5c0;--accent:#c0eedf}
@@ -20,10 +20,15 @@
   const holdRow = root.getElementById("hold").parentElement;
   root.querySelector("header").after(holdRow);
   const $ = id => root.getElementById(id);
-  root.innerHTML += "<style>#logic,#generate,#stop,#marketing,#hold,.hold-row,#settings{display:none!important}</style>";
-  const UNIVERSAL_HOVER_DELAY_MS = 2000;
+  root.innerHTML += "<style>#logic,#stop,#marketing,#hold,.hold-row,#settings{display:none!important}</style>";
+  const apiSetup = document.createElement("div");
+  apiSetup.id = "apiSetup";
+  apiSetup.hidden = true;
+  apiSetup.innerHTML = `<span>尚未配置 API Key</span><button id="openApiSettings" type="button">添加 API Key</button>`;
+  apiSetup.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px;padding:10px 12px;border:1px solid #f0b19d66;border-radius:6px;background:#522b2a66;color:#ffd3c7;font-size:12px";
+  apiSetup.querySelector("button").style.cssText = "flex:0 0 auto;background:#bce9d8;color:#152a23;border:1px solid #daf9ee;border-radius:6px;font:inherit;font-weight:600;padding:7px 10px;cursor:pointer";
+  root.querySelector("#status").after(apiSetup);
   $("logic").closest("label")?.setAttribute("hidden", "");
-  $("generate").parentElement?.setAttribute("hidden", "");
   $("marketing").setAttribute("hidden", "");
   const HOVER_KEY = "imagePromptStudioHover";
   let hoverAllowed = false;
@@ -45,6 +50,7 @@
   const originalLabel = $("output").parentElement;
   const languageAreas = document.createElement("div");
   languageAreas.innerHTML = `<style>.language-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;color:#d1d6df;font-size:12px}.language-head button{min-height:28px;padding:4px 9px;font-size:11px}.language-output{min-height:120px;line-height:1.7;padding:12px}details{margin-top:12px}summary{cursor:pointer;color:#aeb5c0;font-size:11px}summary:hover{color:#fff}</style><div class="language-head"><label for="outputZh">中文提示词</label><button id="copyZh">复制中文</button></div><textarea class="language-output" id="outputZh" aria-label="中文提示词" rows="5"></textarea><div class="language-head"><label for="outputEn">English Prompt</label><button id="copyEn">复制英文</button></div><textarea class="language-output" id="outputEn" aria-label="英文提示词" rows="5"></textarea>`;
+  languageAreas.style.cssText = "margin-top:12px;padding:4px 12px 12px;border:1px solid #ffffff24;border-radius:8px;background:rgba(10,13,18,.18)";
   originalLabel.before(languageAreas);
   originalLabel.hidden = true;
   $("copy").hidden = true;
@@ -101,6 +107,7 @@
   }
   async function copyLanguage(id, name) {
     const field = $(id);
+    if (!field.value.trim() && $("output").value.trim()) showLanguages($("output").value);
     if (!field.value.trim()) { feedback(name + "提示词为空"); return; }
     try { await navigator.clipboard.writeText(field.value); feedback("已复制" + name); finishInteraction(); }
     catch { field.focus(); field.select(); feedback("请使用系统复制命令"); }
@@ -111,7 +118,7 @@
   $("outputEn").oninput = () => remember();
   const cache = new Map();
   const HOVER_DELAY_MS = 700;
-  const LEAVE_DELAY_MS = 2500;
+  const LEAVE_DELAY_MS = 1000;
   let engaged = false;
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
   function finishInteraction() {
@@ -133,6 +140,7 @@
     motion.finished.then(() => { if(epoch === visibilityEpoch) host.style.display = "none"; }).catch(() => {});
   }
   function feedback(text, state = "idle") { $("status").textContent = text; $("status").dataset.state = state; }
+  function setApiSetupVisible(visible) { apiSetup.hidden = !visible; }
   function remember() { if(source) cache.set(source, {text:$("output").value,zh:$("outputZh").value,en:$("outputEn").value,logic:$("logic").value,market:$("market").value,points:$("points").value}); if(cache.size>30) cache.delete(cache.keys().next().value); }
   function position() {
     if(!image?.isConnected || host.style.display === "none") return;
@@ -157,6 +165,7 @@
   function open(target, replay = false) {
     if (!hoverAllowed) return;
     if(busy && target!==image) return;
+    clearTimeout(leaveTimer);
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
     if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); if (replay && !busy) playOpenAnimation(target); return; }
     const previousPosition = host.style.display !== "none" && target !== image ? {left:parseFloat(host.style.left),top:parseFloat(host.style.top)} : null;
@@ -172,7 +181,7 @@
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
-    playOpenAnimation(target, previousPosition);
+    if (!previousPosition) playOpenAnimation(target);
   }
   const launcher = document.createElement("button");
   launcher.textContent = "↗";
@@ -185,7 +194,7 @@
   let candidate = null;
   function detectImage(event) {
     if (!hoverAllowed) return;
-    if (event.target === host || event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); return; }
+    if (event.target === host || event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); leaveTimer = setTimeout(() => { if (!busy && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS); return; }
     const stack = document.elementsFromPoint(event.clientX, event.clientY);
     let target = stack.find(node => node instanceof HTMLImageElement);
     if (!target) {
@@ -204,10 +213,10 @@
       launcher.style.display = "block";
       launcher.style.left = Math.max(4, Math.min(innerWidth - 38, rect.left + 8)) + "px";
       launcher.style.top = Math.max(4, Math.min(innerHeight - 38, rect.top + 8)) + "px";
-      timer = setTimeout(() => { if (candidate === target && target.isConnected) { open(target, true); $("logic").value = "universal"; $("generate").click(); } }, UNIVERSAL_HOVER_DELAY_MS);
+      timer = setTimeout(() => { if (candidate === target && target.isConnected && !busy) open(target, true); }, HOVER_DELAY_MS);
     } else {
       launcher.style.display = "none";
-      leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !engaged && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);
+      leaveTimer = setTimeout(() => { if (!busy && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);
     }
   }
   document.addEventListener("pointerover", detectImage, true);
@@ -227,6 +236,8 @@
   window.addEventListener("resize",position); window.addEventListener("scroll",position,{passive:true});
   $("logic").onchange=()=>{$("marketing").hidden=$("logic").value!=="localizedMarketing";position();};
   function send(message) {return new Promise((resolve,reject)=>{try{chrome.runtime.sendMessage(message,response=>{if(chrome.runtime.lastError) reject(new Error("扩展连接失效，请刷新当前网页。"));else if(!response?.ok) reject(new Error(response?.error?.message||"操作失败"));else resolve(response);});}catch{reject(new Error("请刷新当前网页后重试。"));}});}
+  apiSetup.querySelector("#openApiSettings").onclick = () => send({type:"openSettings"}).catch(error => feedback(error.message, "error"));
+  send({type:"getSettings"}).then(({settings}) => setApiSetupVisible(!settings?.apiKey)).catch(() => {});
   async function getInput(){
     if(!source.startsWith("blob:")) return {sourceUrl:source};
     const blob=await(await fetch(source)).blob(); if(blob.size>20*1024*1024) throw new Error("图片超过20MB，请下载压缩后使用。");
@@ -236,7 +247,7 @@
   $("generate").onclick=async()=>{
     if(busy||!source)return; busy=true;jobId=null;$("generate").disabled=true;$("stop").disabled=false;$("logic").disabled=true;feedback("正在读取图片…","busy");
     try{const input=await getInput();const response=await send({type:"startAnalysis",...input,sourceType:"pageHover",promptStyle:"universal",promptContext:{}});$("output").value=typeof response.result==="string"?response.result:"";feedback("生成完成","success");showLanguages($("output").value);remember();}
-    catch(error){feedback(error.message,"error");}finally{busy=false;$("generate").disabled=false;$("stop").disabled=true;$("logic").disabled=false; if($("status").textContent === "生成完成") feedback("生成完成","success");}
+    catch(error){setApiSetupVisible(error.message.includes("API Key"));feedback(error.message,"error");}finally{busy=false;$("generate").disabled=false;$("stop").disabled=true;$("logic").disabled=false; if($("status").textContent === "生成完成") feedback("生成完成","success");}
   };
   chrome.storage.onChanged.addListener((changes,area)=>{const job=changes.imagePromptStudioLastResult?.newValue;if(!busy||area!=="local"||!job||job.sourceType!=="pageHover"||job.source!==source)return;if(!jobId)jobId=job.id;if(job.id===jobId)$("status").textContent=(job.title||"处理中")+" · "+(job.progress||0)+"%";});
   $("stop").onclick=()=>{if(jobId)send({type:"cancelAnalysis",jobId}).catch(error=>{$("status").textContent=error.message;});else $("status").textContent="正在读取图片，请等待任务建立后再结束。";};
@@ -244,7 +255,6 @@
   $("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("output").value);$("status").textContent="已复制";finishInteraction();}catch{$("output").focus();$("output").select();$("status").textContent="请使用系统复制命令";}};
   $("output").oninput = () => { showLanguages($("output").value); remember(); };
   $("copy").textContent = "复制完整结果";
-  $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();showLanguages($("output").value);remember();}catch{$("outputZh").focus();$("status").textContent="请在中文或英文文本框内使用系统粘贴命令";}};
   chrome.storage.local.get(HOVER_KEY).then(stored => applyHoverPolicy(stored[HOVER_KEY])).catch(() => {});
   chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes[HOVER_KEY]) applyHoverPolicy(changes[HOVER_KEY].newValue); });
 })();

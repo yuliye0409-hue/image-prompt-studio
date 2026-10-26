@@ -65,11 +65,17 @@
     return result;
   }
   function showLanguages(text) {
+    if (/(?:Skill naming:|Plugin-provided MCP|<plugins_instructions>|"(?:output_tokens_details|input_tokens_details|web_search|usage)"\s*:)/i.test(text)) {
+      $("outputZh").value = ""; $("outputEn").value = "";
+      feedback("已拦截异常接口内容，请重新生成；持续出现请检查API服务商。","error");
+      return false;
+    }
     const parts = splitResult(text);
     $("outputZh").value = parts.zh; $("outputEn").value = parts.en;
     if (text && !parts.zh && !parts.en) {
       feedback("返回内容无法识别为中英文提示词，请重新生成。","error");
     } else if (text && (!parts.zh || !parts.en)) feedback("本次仅返回或识别到" + (parts.zh ? "中文" : "英文") + "提示词，请重新生成补齐另一语言。","error");
+    return true;
   }
   async function copyLanguage(id, name) {
     const field = $(id);
@@ -113,8 +119,9 @@
     const saved=cache.get(source);
     $("output").value=saved?.text||""; $("logic").value=saved?.logic||"universal";
     if (!busy) feedback(saved?.text ? "已恢复此图的提示词" : "准备就绪");
-    showLanguages(saved?.text || "");
-    if (saved) { $("outputZh").value = saved.zh ?? $("outputZh").value; $("outputEn").value = saved.en ?? $("outputEn").value; }
+    const valid = showLanguages(saved?.text || "");
+    if (saved && valid) { $("outputZh").value = saved.zh ?? $("outputZh").value; $("outputEn").value = saved.en ?? $("outputEn").value; }
+    if (!valid) { cache.delete(source); $("output").value = ""; }
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();

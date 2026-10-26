@@ -173,6 +173,7 @@ async function runAnalysisJob({ images, image, sourceUrl, sourceType, promptStyl
     }
 
     const result = await requestModel(inputImages, settings, (stage) => updateJob(job, stage), controller.signal);
+    if (!isCleanPromptResult(result)) throw createAppError("INVALID_MODEL_OUTPUT", "接口返回内容不是有效的图生文提示词。", "已拦截原始响应或无关指令，未将其写入结果。请重试；若持续出现，请检查API服务商的响应格式。");
 
     await updateJob(job, {
       status: "success",
@@ -749,7 +750,42 @@ function extractText(payload) {
 }
 
 function extractOpenAIText(payload) {
-  return findTextIterative(payload);
+  function readText(value) {
+    if (typeof value === "string") return value;
+    if (!Array.isArray(value)) return "";
+    return value.filter(part => part && (part.type === "output_text" || part.type === "text") && typeof part.text === "string").map(part => part.text).join("\n");
+  }
+  function read(value, depth = 0) {
+    if (depth > 4 || value == null) return "";
+    if (typeof value === "string") {
+      const parsed = parseJson(value);
+      if (parsed && typeof parsed === "object") return read(parsed, depth + 1);
+      if (/^\s*(?:\{|\[|<!doctype|<html)/i.test(value)) return "";
+      return value.trim();
+    }
+    if (typeof value !== "object" || Array.isArray(value) || value.error) return "";
+    if (typeof value.output_text === "string" && value.output_text.trim()) return read(value.output_text, depth + 1);
+    if (Array.isArray(value.output)) {
+      const text = value.output.filter(item => item?.type === "message" && item.role === "assistant")
+        .map(item => readText(item.content)).filter(Boolean).join("\n");
+      if (text) return text;
+    }
+    if (Array.isArray(value.choices)) return value.choices.map(choice => {
+      const message = choice.message || choice.delta;
+      if (message?.role && message.role !== "assistant") return "";
+      return readText(message?.content);
+    }).filter(Boolean).join("\n");
+    for (const key of ["response", "data", "result"]) {
+      if (value[key] && typeof value[key] === "object") { const text = read(value[key], depth + 1); if (text) return text; }
+    }
+    return "";
+  }
+  return read(payload).trim();
+}
+
+function isCleanPromptResult(text) {
+  if (typeof text !== "string" || !text.trim()) return false;
+  return !/(?:Skill naming:|Plugin-provided MCP|<plugins_instructions>|<system>|"(?:output_tokens_details|input_tokens_details|web_search|tool_calls)"\s*:|"object"\s*:\s*"response"|"usage"\s*:\s*\{)/i.test(text);
 }
 
 function parseCompatibleResponse(rawBody) {
@@ -759,7 +795,7 @@ function parseCompatibleResponse(rawBody) {
   const json = parseJson(text);
   if (json) return json;
 
-  if (text.startsWith("data:")) {
+  if (/^(?:data:|event:)/.test(text)) {
     const chunks = text
       .split(/\r?\n/)
       .map((line) => line.trim())
@@ -768,12 +804,18 @@ function parseCompatibleResponse(rawBody) {
       .filter((line) => line && line !== "[DONE]");
 
     const collected = [];
+    let completed = "";
     for (const chunk of chunks) {
       const chunkJson = parseJson(chunk);
-      const chunkText = chunkJson ? extractOpenAIText(chunkJson) : chunk;
-      if (chunkText) collected.push(chunkText);
+      if (!chunkJson) continue;
+      if (chunkJson.type === "response.output_text.delta" && typeof chunkJson.delta === "string") collected.push(chunkJson.delta);
+      else if (chunkJson.type === "response.completed") completed = extractOpenAIText(chunkJson.response);
+      else if (!chunkJson.type || chunkJson.choices) {
+        const chunkText = extractOpenAIText(chunkJson);
+        if (chunkText) collected.push(chunkText);
+      }
     }
-    return collected.join("\n").trim();
+    return completed || collected.join("").trim();
   }
 
   return text;

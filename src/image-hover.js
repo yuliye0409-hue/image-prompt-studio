@@ -88,7 +88,7 @@
   $("outputZh").oninput = () => remember();
   $("outputEn").oninput = () => remember();
   const cache = new Map();
-  const HOVER_DELAY_MS = 1200;
+  const HOVER_DELAY_MS = 700;
   const LEAVE_DELAY_MS = 2500;
   let engaged = false;
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
@@ -139,7 +139,7 @@
     host.style.display="block"; position();
     const imageRect = target.getBoundingClientRect();
     host.style.transformOrigin = (imageRect.left > parseFloat(host.style.left) ? "right" : "left") + " top";
-    if(wasHidden && !reducedMotion() && host.animate) motion = host.animate([{opacity:0,transform:"translateY(12px) scale(.72)"},{opacity:1,transform:"translateY(0) scale(1)"}],{duration:300,easing:"cubic-bezier(.16,1,.3,1)"});
+    if(wasHidden && !reducedMotion() && host.animate) motion = host.animate([{opacity:0,transform:"translateY(16px) scale(.5)",offset:0},{opacity:1,transform:"translateY(-2px) scale(1.025)",offset:.78},{opacity:1,transform:"translateY(0) scale(1)",offset:1}],{duration:360,easing:"cubic-bezier(.2,.75,.25,1)"});
   }
   const launcher = document.createElement("button");
   launcher.textContent = "↗";

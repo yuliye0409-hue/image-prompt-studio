@@ -20,6 +20,45 @@
   const holdRow = root.getElementById("hold").parentElement;
   root.querySelector("header").after(holdRow);
   const $ = id => root.getElementById(id);
+  const originalLabel = $("output").parentElement;
+  const languageAreas = document.createElement("div");
+  languageAreas.innerHTML = `<style>.language-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;color:#d1d6df;font-size:12px}.language-head button{min-height:28px;padding:4px 9px;font-size:11px}.language-output{min-height:120px;line-height:1.7;padding:12px}details{margin-top:12px}summary{cursor:pointer;color:#aeb5c0;font-size:11px}summary:hover{color:#fff}</style><div class="language-head"><label for="outputZh">中文提示词</label><button id="copyZh">复制中文</button></div><textarea class="language-output" id="outputZh" aria-label="中文提示词" rows="5"></textarea><div class="language-head"><label for="outputEn">English Prompt</label><button id="copyEn">复制英文</button></div><textarea class="language-output" id="outputEn" aria-label="英文提示词" rows="5"></textarea>`;
+  originalLabel.before(languageAreas);
+  const fullResult = document.createElement("details");
+  const summary = document.createElement("summary");
+  summary.textContent = "完整结果 / 营销分析";
+  originalLabel.before(fullResult); fullResult.append(summary, originalLabel);
+  function splitResult(text) {
+    const lines = text.split(/\r?\n/);
+    const blocks = { zh: [], en: [] };
+    let language = null;
+    for (const line of lines) {
+      const heading = line.replace(/^[\s#>*\d.、)（(\-]+/, "").replace(/\*\*/g, "").trim();
+      const match = heading.match(/^(中文(?:提示词|\s*Prompt)?|Chinese(?:\s+Prompt)?|英文(?:提示词|\s*Prompt)?|English(?:\s+Prompt)?)\s*[:：]?\s*(.*)$/i);
+      if (match) {
+        language = /^(中文|Chinese)/i.test(match[1]) ? "zh" : "en";
+        if (match[2]) blocks[language].push(match[2]);
+      } else if (/^(?:图片\s*\d|Image\s*\d|统一排版系统|文案本地化重构|最终选定|辅助小字|排版视觉规划|排版适配)/i.test(heading)) language = null;
+      else if (language) blocks[language].push(line);
+    }
+    return { zh: blocks.zh.join("\n").trim(), en: blocks.en.join("\n").trim() };
+  }
+  function showLanguages(text) {
+    const parts = splitResult(text);
+    $("outputZh").value = parts.zh; $("outputEn").value = parts.en;
+    fullResult.open = !!text && (!parts.zh || !parts.en);
+    if (fullResult.open) feedback("未识别到完整中英文标题，请查看完整结果并手动整理。");
+  }
+  async function copyLanguage(id, name) {
+    const field = $(id);
+    if (!field.value.trim()) { feedback(name + "提示词为空"); return; }
+    try { await navigator.clipboard.writeText(field.value); feedback("已复制" + name); }
+    catch { field.focus(); field.select(); feedback("请使用系统复制命令"); }
+  }
+  $("copyZh").onclick = () => copyLanguage("outputZh", "中文");
+  $("copyEn").onclick = () => copyLanguage("outputEn", "英文");
+  $("outputZh").oninput = () => remember();
+  $("outputEn").oninput = () => remember();
   const cache = new Map();
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false;
   const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -33,7 +72,7 @@
     motion.finished.then(() => { if(epoch === visibilityEpoch) host.style.display = "none"; }).catch(() => {});
   }
   function feedback(text, state = "idle") { $("status").textContent = text; $("status").dataset.state = state; }
-  function remember() { if(source) cache.set(source, {text:$("output").value,logic:$("logic").value,market:$("market").value,points:$("points").value}); if(cache.size>30) cache.delete(cache.keys().next().value); }
+  function remember() { if(source) cache.set(source, {text:$("output").value,zh:$("outputZh").value,en:$("outputEn").value,logic:$("logic").value,market:$("market").value,points:$("points").value}); if(cache.size>30) cache.delete(cache.keys().next().value); }
   function position() {
     if(!image?.isConnected || host.style.display === "none") return;
     const r=image.getBoundingClientRect(), width=Math.min(408,innerWidth-24);
@@ -51,6 +90,8 @@
     remember(); image=target; source=target.currentSrc||target.src;
     const saved=cache.get(source);
     $("output").value=saved?.text||""; $("logic").value=saved?.logic||"universal";
+    showLanguages(saved?.text || "");
+    if (saved) { $("outputZh").value = saved.zh ?? $("outputZh").value; $("outputEn").value = saved.en ?? $("outputEn").value; }
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
@@ -106,12 +147,14 @@
   }
   $("generate").onclick=async()=>{
     if(busy||!source)return; busy=true;jobId=null;$("generate").disabled=true;$("stop").disabled=false;$("logic").disabled=true;feedback("正在读取图片…","busy");
-    try{const input=await getInput();const response=await send({type:"startAnalysis",...input,sourceType:"pageHover",promptStyle:$("logic").value,promptContext:{targetMarket:$("market").value,sellingPoints:$("points").value}});$("output").value=typeof response.result==="string"?response.result:"";$("status").textContent="生成完成";remember();}
+    try{const input=await getInput();const response=await send({type:"startAnalysis",...input,sourceType:"pageHover",promptStyle:$("logic").value,promptContext:{targetMarket:$("market").value,sellingPoints:$("points").value}});$("output").value=typeof response.result==="string"?response.result:"";feedback("生成完成","success");showLanguages($("output").value);remember();}
     catch(error){feedback(error.message,"error");}finally{busy=false;$("generate").disabled=false;$("stop").disabled=true;$("logic").disabled=false; if($("status").textContent === "生成完成") feedback("生成完成","success");}
   };
   chrome.storage.onChanged.addListener((changes,area)=>{const job=changes.imagePromptStudioLastResult?.newValue;if(!busy||area!=="local"||!job||job.sourceType!=="pageHover"||job.source!==source)return;if(!jobId)jobId=job.id;if(job.id===jobId)$("status").textContent=(job.title||"处理中")+" · "+(job.progress||0)+"%";});
   $("stop").onclick=()=>{if(jobId)send({type:"cancelAnalysis",jobId}).catch(error=>{$("status").textContent=error.message;});else $("status").textContent="正在读取图片，请等待任务建立后再结束。";};
   $("settings").onclick=()=>send({type:"openSettings"}).catch(error=>{$("status").textContent=error.message;});
   $("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("output").value);$("status").textContent="已复制";}catch{$("output").focus();$("output").select();$("status").textContent="请使用系统复制命令";}};
-  $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();remember();}catch{$("output").focus();$("status").textContent="请在文本框内使用系统粘贴命令";}};
+  $("output").oninput = () => { showLanguages($("output").value); remember(); };
+  $("copy").textContent = "复制完整结果";
+  $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();showLanguages($("output").value);remember();}catch{fullResult.open=true;$("output").focus();$("status").textContent="请在文本框内使用系统粘贴命令";}};
 })();

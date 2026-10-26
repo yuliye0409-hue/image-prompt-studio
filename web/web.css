@@ -1,0 +1,15 @@
+body[data-surface="panel"] .shell { max-width: 1080px; margin: 0 auto; gap: 18px; padding: 28px; }
+.header { min-height: 60px; }
+.header > div:first-child { min-width: 0; }
+.drop-zone { min-height: 160px; }
+.preview-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.footer { position: sticky; bottom: 0; padding: 14px 0; background: rgba(15,17,20,.88); backdrop-filter: blur(24px); }
+body[data-surface="panel"] #resultText { min-height: 330px; }
+input, select, textarea { font-size: 16px; }
+@media(max-width:600px) {
+  body[data-surface="panel"] .shell { padding: 16px; }
+  .preview-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .settings { padding: 20px; }
+  h1 { font-size: 22px; }
+}
+@media(prefers-reduced-motion:reduce) { * { transition: none !important; } }

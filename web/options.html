@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Prompt Studio 设置</title>
+    <link rel="stylesheet" href="options.css">
+  <link rel="stylesheet" href="web.css"><link rel="icon" href="icon.png"></head>
+  <body>
+    <main class="page">
+      <section class="settings">
+        <p class="eyebrow">Image Prompt Studio</p>
+        <h1>扩展设置</h1>
+
+        <form id="settingsForm" class="form">
+          <label>
+            <span>API 服务商</span>
+            <select id="provider">
+              <option value="openaiCompatible">OpenAI 兼容接口</option>
+              <option value="gemini">Google Gemini</option>
+            </select>
+          </label>
+
+          <label>
+            <span>API Key</span>
+            <div class="key-row">
+              <input id="apiKey" type="password" autocomplete="off" placeholder="粘贴你的 API Key">
+              <button id="getApiKey" class="secondary" type="button">获取 Key</button>
+            </div>
+          </label>
+
+          <label>
+            <span>Base URL</span>
+            <input id="baseUrl" type="url" placeholder="https://ai.gs88.shop">
+          </label>
+
+          <label>
+            <span>模型</span>
+            <input id="model" type="text" value="gpt-5.5">
+          </label>
+
+          <label>
+            <span>输出模式</span>
+            <select id="promptStyle">
+              <option value="universal">通用图生文 Prompt</option>
+              <option value="productAppearance">产品外观分析 Prompt</option>
+              <option value="localizedMarketing">本地化营销排版 Prompt</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button type="submit">保存设置</button>
+            <span id="saveStatus" role="status"></span>
+          </div>
+        </form>
+
+        <aside class="note">
+          API Key 会保存在 Chrome 本地扩展存储中，只用于从你的浏览器请求所选 API 服务。
+          不要把 API Key 写进扩展源码或分享给他人。
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="adapter.js"></script>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

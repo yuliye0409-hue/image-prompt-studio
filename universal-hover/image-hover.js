@@ -50,6 +50,7 @@
   const originalLabel = $("output").parentElement;
   const languageAreas = document.createElement("div");
   languageAreas.innerHTML = `<style>.language-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;color:#d1d6df;font-size:12px}.language-head button{min-height:28px;padding:4px 9px;font-size:11px}.language-output{min-height:120px;line-height:1.7;padding:12px}details{margin-top:12px}summary{cursor:pointer;color:#aeb5c0;font-size:11px}summary:hover{color:#fff}</style><div class="language-head"><label for="outputZh">中文提示词</label><button id="copyZh">复制中文</button></div><textarea class="language-output" id="outputZh" aria-label="中文提示词" rows="5"></textarea><div class="language-head"><label for="outputEn">English Prompt</label><button id="copyEn">复制英文</button></div><textarea class="language-output" id="outputEn" aria-label="英文提示词" rows="5"></textarea>`;
+  languageAreas.style.cssText = "margin-top:12px;padding:4px 12px 12px;border:1px solid #ffffff24;border-radius:8px;background:rgba(10,13,18,.18)";
   originalLabel.before(languageAreas);
   originalLabel.hidden = true;
   $("copy").hidden = true;
@@ -106,6 +107,7 @@
   }
   async function copyLanguage(id, name) {
     const field = $(id);
+    if (!field.value.trim() && $("output").value.trim()) showLanguages($("output").value);
     if (!field.value.trim()) { feedback(name + "提示词为空"); return; }
     try { await navigator.clipboard.writeText(field.value); feedback("已复制" + name); finishInteraction(); }
     catch { field.focus(); field.select(); feedback("请使用系统复制命令"); }
@@ -191,7 +193,7 @@
   let candidate = null;
   function detectImage(event) {
     if (!hoverAllowed) return;
-    if (event.target === host || event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); return; }
+    if (event.target === host || event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); leaveTimer = setTimeout(() => { if (!busy && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS); return; }
     const stack = document.elementsFromPoint(event.clientX, event.clientY);
     let target = stack.find(node => node instanceof HTMLImageElement);
     if (!target) {
@@ -213,7 +215,7 @@
       timer = setTimeout(() => { if (candidate === target && target.isConnected && !busy) open(target, true); }, HOVER_DELAY_MS);
     } else {
       launcher.style.display = "none";
-      leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy && !engaged && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);
+      leaveTimer = setTimeout(() => { if (!busy && !$("hold").checked) closePanel(); }, LEAVE_DELAY_MS);
     }
   }
   document.addEventListener("pointerover", detectImage, true);

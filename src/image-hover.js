@@ -105,7 +105,7 @@
     return {images:[{mimeType:blob.type,data:url.split(",")[1]}]};
   }
   $("generate").onclick=async()=>{
-    if(busy||!source)return; busy=true;jobId=null;$("generate").disabled=true;$("stop").disabled=false;$("logic").disabled=true;$("status").textContent="正在读取图片…";
+    if(busy||!source)return; busy=true;jobId=null;$("generate").disabled=true;$("stop").disabled=false;$("logic").disabled=true;feedback("正在读取图片…","busy");
     try{const input=await getInput();const response=await send({type:"startAnalysis",...input,sourceType:"pageHover",promptStyle:$("logic").value,promptContext:{targetMarket:$("market").value,sellingPoints:$("points").value}});$("output").value=typeof response.result==="string"?response.result:"";$("status").textContent="生成完成";remember();}
     catch(error){feedback(error.message,"error");}finally{busy=false;$("generate").disabled=false;$("stop").disabled=true;$("logic").disabled=false; if($("status").textContent === "生成完成") feedback("生成完成","success");}
   };

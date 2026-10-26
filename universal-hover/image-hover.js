@@ -29,7 +29,6 @@
   apiSetup.querySelector("button").style.cssText = "flex:0 0 auto;background:#bce9d8;color:#152a23;border:1px solid #daf9ee;border-radius:6px;font:inherit;font-weight:600;padding:7px 10px;cursor:pointer";
   root.querySelector("#status").after(apiSetup);
   $("logic").closest("label")?.setAttribute("hidden", "");
-  $("generate").parentElement?.setAttribute("hidden", "");
   $("marketing").setAttribute("hidden", "");
   const HOVER_KEY = "imagePromptStudioHover";
   let hoverAllowed = false;
@@ -116,7 +115,7 @@
   $("outputZh").oninput = () => remember();
   $("outputEn").oninput = () => remember();
   const cache = new Map();
-  const HOVER_DELAY_MS = 1200;
+  const HOVER_DELAY_MS = 700;
   const LEAVE_DELAY_MS = 2500;
   let engaged = false;
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;

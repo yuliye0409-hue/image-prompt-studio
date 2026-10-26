@@ -4,8 +4,8 @@ const assert = require("node:assert/strict");
 const elements = new Map();
 const events = {};
 const messages = [];
-const element = () => ({value:"",style:{},disabled:false,hidden:false,setAttribute(){},focus(){},select(){},getBoundingClientRect(){return {height:400};}});
-const root = {getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},addEventListener(){}};
+const element = () => ({value:"",style:{},dataset:{},checked:false,parentElement:{},disabled:false,hidden:false,setAttribute(){},focus(){},select(){},getBoundingClientRect(){return {height:400};}});
+const root = {getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},querySelector(){return {after(){}};},addEventListener(){}};
 const host = {...element(),attachShadow(){return root;},addEventListener(){},matches(){return false;}};
 class Image {constructor(){this.src="https://example.com/product.jpg";this.isConnected=true;}getBoundingClientRect(){return {width:200,height:200,left:30,right:230,top:50};}}
 let hover;

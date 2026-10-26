@@ -1,5 +1,7 @@
 (() => {
+  if (document.getElementById("ips-hover-host")) return;
   const host = document.createElement("div");
+  host.id = "ips-hover-host";
   host.style.cssText = "position:fixed;z-index:2147483647;display:none";
   const root = host.attachShadow({mode:"closed"});
   root.innerHTML = `<style>*{box-sizing:border-box}section{font:13px/1.5 system-ui;color:#eee;width:min(390px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:18px;background:rgba(25,28,32,.96);backdrop-filter:blur(28px);border:1px solid #ffffff35;border-radius:8px;box-shadow:0 20px 70px #0008}header,.row{display:flex;gap:8px;justify-content:space-between}label{display:grid;gap:6px;margin:12px 0}select,input,textarea,button{font:inherit;color:#eee;background:#121519;border:1px solid #ffffff30;border-radius:6px;padding:9px}select,input,textarea{width:100%}textarea{resize:vertical}.row button{flex:1}button{cursor:pointer}button:disabled{opacity:.5}#status{white-space:pre-wrap;overflow-wrap:anywhere}#generate{background:#bce9d8;color:#152a23}[hidden]{display:none!important}</style><section role="dialog" aria-label="网页图片提示词"><header><strong>Image Prompt Studio</strong><button id="close" aria-label="关闭">×</button></header><label>提示词逻辑<select id="logic"><option value="universal">通用图生文</option><option value="productAppearance">产品外观分析</option><option value="localizedMarketing">本地化营销排版</option></select></label><div id="marketing" hidden><label>目标市场<input id="market" maxlength="120"></label><label>产品 / 卖点<textarea id="points" rows="2" maxlength="600"></textarea></label></div><div class="row"><button id="generate">生成此图提示词</button><button id="stop" disabled>结束进程</button></div><p id="status" role="status">准备就绪</p><label>提示词<textarea id="output" rows="7"></textarea></label><div class="row"><button id="copy">复制</button><button id="paste">粘贴</button><button id="settings">设置</button></div></section>`;
@@ -24,15 +26,41 @@
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
   }
-  document.addEventListener("pointerover",event=>{
-    if(!(event.target instanceof HTMLImageElement)) return;
-    const r=event.target.getBoundingClientRect(); if(r.width<64||r.height<64) return;
-    clearTimeout(timer); clearTimeout(leaveTimer); timer=setTimeout(()=>open(event.target),500);
-  },true);
-  document.addEventListener("pointerout",event=>{
-    if(!(event.target instanceof HTMLImageElement)) return; clearTimeout(timer);
-    leaveTimer=setTimeout(()=>{if(!host.matches(":hover")&&!root.activeElement&&!busy){remember();host.style.display="none";}},900);
-  },true);
+  const launcher = document.createElement("button");
+  launcher.textContent = "↗";
+  launcher.title = "打开图片提示词";
+  launcher.setAttribute("aria-label", "打开图片提示词");
+  launcher.style.cssText = "all:initial;position:fixed;display:none;z-index:2147483647;width:34px;height:34px;border-radius:6px;background:#bce9d8;color:#152a23;text-align:center;font:22px/34px system-ui;cursor:pointer;box-shadow:0 2px 12px #0006";
+  document.documentElement.append(launcher);
+  launcher.onclick = () => { if (candidate) open(candidate); };
+  // Resolve images beneath site overlays instead of relying on event.target.
+  let candidate = null;
+  function detectImage(event) {
+    if (event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); return; }
+    const stack = document.elementsFromPoint(event.clientX, event.clientY);
+    let target = stack.find(node => node instanceof HTMLImageElement);
+    if (!target) {
+      const container = event.target.closest?.("a, [data-test-id=pin], [role=listitem], figure");
+      target = container?.querySelector("img");
+      if (target) { const r = target.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) target = null; }
+    }
+    if (target) { const r = target.getBoundingClientRect(); if (r.width < 64 || r.height < 64) target = null; }
+    if (target === candidate) { if (target) clearTimeout(leaveTimer); return; }
+    candidate = target; clearTimeout(timer);
+    if (target) {
+      clearTimeout(leaveTimer);
+      const rect = target.getBoundingClientRect();
+      launcher.style.display = "block";
+      launcher.style.left = Math.max(4, Math.min(innerWidth - 38, rect.left + 8)) + "px";
+      launcher.style.top = Math.max(4, Math.min(innerHeight - 38, rect.top + 8)) + "px";
+      timer = setTimeout(() => open(target), 450);
+    } else {
+      launcher.style.display = "none";
+      leaveTimer = setTimeout(() => { if (!host.matches(":hover") && !root.activeElement && !busy) { remember(); host.style.display = "none"; } }, 900);
+    }
+  }
+  document.addEventListener("pointerover", detectImage, true);
+  document.addEventListener("pointermove", detectImage, true);
   host.addEventListener("pointerenter",()=>clearTimeout(leaveTimer));
   $("close").onclick=()=>{remember();host.style.display="none";};
   root.addEventListener("keydown",event=>{if(event.key==="Escape") $("close").click();});

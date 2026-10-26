@@ -115,21 +115,28 @@
   function position() {
     if(!image?.isConnected || host.style.display === "none") return;
     const r=image.getBoundingClientRect(), width=Math.min(408,innerWidth-24);
+    const height = host.getBoundingClientRect().height;
     const left=r.right+width+12<innerWidth?r.right+10:r.left-width-10;
     host.style.left=Math.max(12,Math.min(left,innerWidth-width-12))+"px";
-    host.style.top=Math.max(12,Math.min(r.top,innerHeight-host.getBoundingClientRect().height-12))+"px";
+    host.style.top=Math.max(12,Math.min(r.top,innerHeight-height-12))+"px";
   }
-  function playOpenAnimation(target) {
+  function playOpenAnimation(target, previousPosition) {
     if (reducedMotion() || !host.animate) return;
     motion?.cancel();
     const rect = target.getBoundingClientRect();
     host.style.transformOrigin = (rect.left > parseFloat(host.style.left) ? "right" : "left") + " top";
-    motion = host.animate([{opacity:0,transform:"translateY(16px) scale(.5)",offset:0},{opacity:1,transform:"translateY(-2px) scale(1.025)",offset:.78},{opacity:1,transform:"translateY(0) scale(1)",offset:1}],{duration:360,easing:"cubic-bezier(.2,.75,.25,1)"});
+    const dx = previousPosition ? previousPosition.left - parseFloat(host.style.left) : 0;
+    const dy = previousPosition ? previousPosition.top - parseFloat(host.style.top) : 8;
+    host.style.willChange = "transform, opacity";
+    motion = host.animate([{opacity:previousPosition ? .8 : 0,transform:`translate3d(${dx}px,${dy}px,0) scale(${previousPosition ? .97 : .86})`},{opacity:1,transform:"translate3d(0,0,0) scale(1)"}],{duration:260,easing:"cubic-bezier(.22,.61,.36,1)"});
+    const currentMotion = motion;
+    motion.finished.then(() => { if (motion === currentMotion) host.style.willChange = "auto"; }).catch(() => {});
   }
   function open(target, replay = false) {
     if(busy && target!==image) return;
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
     if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); if (replay && !busy) playOpenAnimation(target); return; }
+    const previousPosition = host.style.display !== "none" && target !== image ? {left:parseFloat(host.style.left),top:parseFloat(host.style.top)} : null;
     ++visibilityEpoch; motion?.cancel();
     closing = false;
     remember(); image=target; source=target.currentSrc||target.src;
@@ -142,7 +149,7 @@
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
-    playOpenAnimation(target);
+    playOpenAnimation(target, previousPosition);
   }
   const launcher = document.createElement("button");
   launcher.textContent = "↗";
@@ -154,7 +161,7 @@
   // Resolve images beneath site overlays instead of relying on event.target.
   let candidate = null;
   function detectImage(event) {
-    if (event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); return; }
+    if (event.target === host || event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); return; }
     const stack = document.elementsFromPoint(event.clientX, event.clientY);
     let target = stack.find(node => node instanceof HTMLImageElement);
     if (!target) {
@@ -180,7 +187,13 @@
     }
   }
   document.addEventListener("pointerover", detectImage, true);
-  document.addEventListener("pointermove", detectImage, true);
+  let pointerFrame = null, latestPointerEvent;
+  document.addEventListener("pointermove", event => {
+    if (!window.requestAnimationFrame) { detectImage(event); return; }
+    latestPointerEvent = event;
+    if (pointerFrame !== null) return;
+    pointerFrame = window.requestAnimationFrame(() => { pointerFrame = null; detectImage(latestPointerEvent); });
+  }, true);
   function engage() { engaged = true; clearTimeout(timer); clearTimeout(leaveTimer); }
   host.addEventListener("pointerenter", engage);
   root.addEventListener("focusin", engage);

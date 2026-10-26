@@ -165,6 +165,7 @@
   function open(target, replay = false) {
     if (!hoverAllowed) return;
     if(busy && target!==image) return;
+    clearTimeout(leaveTimer);
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
     if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); if (replay && !busy) playOpenAnimation(target); return; }
     const previousPosition = host.style.display !== "none" && target !== image ? {left:parseFloat(host.style.left),top:parseFloat(host.style.top)} : null;
@@ -180,7 +181,7 @@
     $("market").value=saved?.market||""; $("points").value=saved?.points||"";
     $("marketing").hidden=$("logic").value!=="localizedMarketing";
     host.style.display="block"; position();
-    playOpenAnimation(target, previousPosition);
+    if (!previousPosition) playOpenAnimation(target);
   }
   const launcher = document.createElement("button");
   launcher.textContent = "↗";

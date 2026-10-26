@@ -30,4 +30,5 @@ body[data-surface="panel"] .preview-grid { grid-template-columns:repeat(3,minmax
 body[data-surface="panel"] .preview-item { aspect-ratio:4/3; height:auto; background:#17191b; }
 body[data-surface="panel"] .preview-item img { width:100%; height:100%; object-fit:contain; cursor:pointer; }
 .preview-item img:focus-visible { outline:2px solid #8cddc6; outline-offset:-3px; }
+.image-workbench-open { position:absolute; bottom:8px; left:8px; width:36px; height:36px; padding:0; border-radius:6px; color:#122a23; background:#c2eedf; font-size:22px; line-height:1; z-index:2; cursor:pointer; }
 @media(max-width:600px) { body[data-surface="panel"] .preview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .image-popover { padding:16px; } }

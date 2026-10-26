@@ -1,3 +1,3 @@
-await import('./adapter.js');
-await import('./popup.js');
-await import('./image-workbench.js');
+await import('./adapter.js?v=78aca4e8e7a4');
+await import('./popup.js?v=78aca4e8e7a4');
+await import('./image-workbench.js?v=78aca4e8e7a4');

@@ -75,6 +75,19 @@ function enhanceImages() {
   grid.querySelectorAll('.preview-item img').forEach(image => {
     if (image.dataset.workbench) return;
     image.dataset.workbench = 'true';
+    image.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimer);
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => open(image), 420);
+    });
+    const launcher = document.createElement('button');
+    launcher.type = 'button';
+    launcher.className = 'image-workbench-open';
+    launcher.textContent = '↗';
+    launcher.title = '打开单图提示词工作台';
+    launcher.setAttribute('aria-label', '打开单图提示词工作台');
+    launcher.addEventListener('click', () => open(image, true));
+    image.parentElement.append(launcher);
     image.tabIndex = 0;
     image.setAttribute('role', 'button');
     image.setAttribute('aria-haspopup', 'dialog');

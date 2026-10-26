@@ -23,6 +23,6 @@ vm.runInContext(fs.readFileSync('web/adapter.js', 'utf8').replace("await import(
   for (const file of ['background.js', 'popup.js', 'options.js']) {
     assert.equal(fs.readFileSync(`web/${file}`, 'utf8'), fs.readFileSync(`src/${file}`, 'utf8'));
   }
-  assert.match(fs.readFileSync('web/index.html', 'utf8'), /src="app.js"/);
+  assert.match(fs.readFileSync('web/index.html', 'utf8'), /src="app.js\?v=[a-f0-9]+"/);
   console.log('Web adapter, settings synchronization, bootstrap and source parity checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

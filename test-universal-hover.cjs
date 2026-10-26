@@ -1,0 +1,12 @@
+const fs = require("node:fs");
+const assert = require("node:assert/strict");
+const manifest = JSON.parse(fs.readFileSync("universal-hover/manifest.json", "utf8"));
+const source = fs.readFileSync("universal-hover/image-hover.js", "utf8");
+assert.equal(manifest.version, "1.0.0");
+assert.deepEqual(manifest.content_scripts[0].js, ["image-hover.js"]);
+assert.match(source, /UNIVERSAL_HOVER_DELAY_MS = 2000/);
+assert.match(source, /promptStyle:"universal"/);
+assert.match(source, /closest\("label"\).*hidden/);
+assert.match(source, /generate.*click\(\)/);
+assert.doesNotMatch(source, /promptStyle:\$\("logic"\)\.value/);
+console.log("Universal hover manifest, 2-second auto trigger and fixed prompt logic checks passed.");

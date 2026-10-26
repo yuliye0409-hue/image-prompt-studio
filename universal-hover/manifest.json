@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Image Prompt Studio - Universal Hover",
+  "description": "鼠标停留网页图片超过 2 秒，自动生成中文和英文通用图生图提示词。",
+  "version": "1.0.0",
+  "action": { "default_title": "Image Prompt Studio - Universal Hover" },
+  "options_page": "options.html",
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage", "contextMenus"],
+  "host_permissions": ["<all_urls>", "https://ai.gs88.shop/*", "https://generativelanguage.googleapis.com/*"],
+  "content_scripts": [{ "matches": ["http://*/*", "https://*/*"], "js": ["image-hover.js"], "run_at": "document_idle", "all_frames": true }],
+  "icons": { "16": "assets/icon-16.png", "32": "assets/icon-32.png", "48": "assets/icon-48.png", "128": "assets/icon-128.png" }
+}

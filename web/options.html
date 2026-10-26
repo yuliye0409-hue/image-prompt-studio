@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Image Prompt Studio 设置</title>
-    <link rel="stylesheet" href="options.css?v=936a6841cf44">
-  <link rel="stylesheet" href="web.css?v=936a6841cf44"><link rel="icon" href="icon.png"></head>
+    <link rel="stylesheet" href="options.css?v=c21b25e23709">
+  <link rel="stylesheet" href="web.css?v=c21b25e23709"><link rel="icon" href="icon.png"></head>
   <body>
     <main class="page">
       <section class="settings">
@@ -48,6 +48,14 @@
             </select>
           </label>
 
+          <label>
+            <span>网页图片悬浮窗</span>
+            <select id="hoverEnabled"><option value="true">开启</option><option value="false">关闭所有网站的悬浮窗</option></select>
+          </label>
+          <label>
+            <span>关闭悬浮窗的网站（每行一个域名，删除后即可恢复）</span>
+            <textarea id="disabledHoverHosts" rows="4" placeholder="www.pinterest.com" spellcheck="false"></textarea>
+          </label>
           <div class="actions">
             <button type="submit">保存设置</button>
             <span id="saveStatus" role="status"></span>
@@ -60,6 +68,6 @@
         </aside>
       </section>
     </main>
-    <script type="module" src="settings-app.js?v=936a6841cf44"></script>
+    <script type="module" src="settings-app.js?v=c21b25e23709"></script>
   </body>
 </html>

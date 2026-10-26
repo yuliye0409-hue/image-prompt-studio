@@ -16,7 +16,7 @@ const storage = {
       changes[key] = { oldValue: memory[key], newValue: value };
       memory[key] = value;
       try {
-        if (key === settingsKey) {
+        if (key === settingsKey || key === "imagePromptStudioHover") {
           localStorage.setItem(key, JSON.stringify(value));
         }
       } catch {}

@@ -20,6 +20,23 @@
   const holdRow = root.getElementById("hold").parentElement;
   root.querySelector("header").after(holdRow);
   const $ = id => root.getElementById(id);
+  const HOVER_KEY = "imagePromptStudioHover";
+  let hoverAllowed = false;
+  function applyHoverPolicy(value = {}) {
+    hoverAllowed = value.enabled !== false && !(value.blockedHosts || []).includes(location.hostname.toLowerCase());
+    if (!hoverAllowed) { clearTimeout(timer); clearTimeout(leaveTimer); host.style.display = "none"; launcher.style.display = "none"; candidate = null; }
+  }
+  const disableSite = document.createElement("button");
+  disableSite.textContent = "关闭当前网站悬浮窗";
+  disableSite.style.cssText = "width:100%;margin-top:12px;font-size:11px;color:#b8c1cd";
+  root.querySelector("section").append(disableSite);
+  disableSite.onclick = async () => {
+    try {
+      const current = (await chrome.storage.local.get(HOVER_KEY))[HOVER_KEY] || {};
+      const next = { ...current, blockedHosts: [...new Set([...(current.blockedHosts || []), location.hostname.toLowerCase()])] };
+      await chrome.storage.local.set({ [HOVER_KEY]: next }); applyHoverPolicy(next);
+    } catch { feedback("保存失败，请在扩展设置中重试。","error"); }
+  };
   const originalLabel = $("output").parentElement;
   const languageAreas = document.createElement("div");
   languageAreas.innerHTML = `<style>.language-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;color:#d1d6df;font-size:12px}.language-head button{min-height:28px;padding:4px 9px;font-size:11px}.language-output{min-height:120px;line-height:1.7;padding:12px}details{margin-top:12px}summary{cursor:pointer;color:#aeb5c0;font-size:11px}summary:hover{color:#fff}</style><div class="language-head"><label for="outputZh">中文提示词</label><button id="copyZh">复制中文</button></div><textarea class="language-output" id="outputZh" aria-label="中文提示词" rows="5"></textarea><div class="language-head"><label for="outputEn">English Prompt</label><button id="copyEn">复制英文</button></div><textarea class="language-output" id="outputEn" aria-label="英文提示词" rows="5"></textarea>`;
@@ -133,6 +150,7 @@
     motion.finished.then(() => { if (motion === currentMotion) host.style.willChange = "auto"; }).catch(() => {});
   }
   function open(target, replay = false) {
+    if (!hoverAllowed) return;
     if(busy && target!==image) return;
     if ($("hold").checked && host.style.display !== "none" && target !== image) return;
     if (target === image && host.style.display !== "none" && !closing) { clearTimeout(leaveTimer); if (replay && !busy) playOpenAnimation(target); return; }
@@ -161,6 +179,7 @@
   // Resolve images beneath site overlays instead of relying on event.target.
   let candidate = null;
   function detectImage(event) {
+    if (!hoverAllowed) return;
     if (event.target === host || event.composedPath().includes(host) || event.target === launcher) { clearTimeout(leaveTimer); return; }
     const stack = document.elementsFromPoint(event.clientX, event.clientY);
     let target = stack.find(node => node instanceof HTMLImageElement);
@@ -221,4 +240,6 @@
   $("output").oninput = () => { showLanguages($("output").value); remember(); };
   $("copy").textContent = "复制完整结果";
   $("paste").onclick=async()=>{try{$("output").value=await navigator.clipboard.readText();showLanguages($("output").value);remember();}catch{$("outputZh").focus();$("status").textContent="请在中文或英文文本框内使用系统粘贴命令";}};
+  chrome.storage.local.get(HOVER_KEY).then(stored => applyHoverPolicy(stored[HOVER_KEY])).catch(() => {});
+  chrome.storage.onChanged.addListener((changes, area) => { if (area === "local" && changes[HOVER_KEY]) applyHoverPolicy(changes[HOVER_KEY].newValue); });
 })();

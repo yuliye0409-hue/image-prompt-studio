@@ -1,4 +1,5 @@
 const SETTINGS_KEY = "imagePromptStudioSettings";
+const HOVER_KEY = "imagePromptStudioHover";
 const DEFAULT_SETTINGS = {
   provider: "openaiCompatible",
   apiKey: "",
@@ -59,6 +60,10 @@ form.addEventListener("submit", async (event) => {
   };
 
   await chrome.storage.local.set({ [SETTINGS_KEY]: settings });
+  const blockedHosts = [...new Set(document.querySelector("#disabledHoverHosts").value.split(/\r?\n/).map(line => {
+    try { return new URL(line.trim().includes("://") ? line.trim() : "https://" + line.trim()).hostname.toLowerCase(); } catch { return ""; }
+  }).filter(Boolean))];
+  await chrome.storage.local.set({ [HOVER_KEY]: { enabled: document.querySelector("#hoverEnabled").value === "true", blockedHosts } });
   saveStatus.textContent = "已保存";
   setTimeout(() => {
     saveStatus.textContent = "";
@@ -66,6 +71,9 @@ form.addEventListener("submit", async (event) => {
 });
 
 async function loadSettings() {
+  const hover = (await chrome.storage.local.get(HOVER_KEY))[HOVER_KEY] || {};
+  document.querySelector("#hoverEnabled").value = hover.enabled === false ? "false" : "true";
+  document.querySelector("#disabledHoverHosts").value = (hover.blockedHosts || []).join("\n");
   const stored = await chrome.storage.local.get(SETTINGS_KEY);
   const saved = stored[SETTINGS_KEY] || {};
   const settings = {

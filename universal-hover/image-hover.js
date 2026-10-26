@@ -116,7 +116,7 @@
   $("outputEn").oninput = () => remember();
   const cache = new Map();
   const HOVER_DELAY_MS = 700;
-  const LEAVE_DELAY_MS = 2500;
+  const LEAVE_DELAY_MS = 1000;
   let engaged = false;
   let image, source, timer, leaveTimer, busy = false, jobId, motion, visibilityEpoch = 0, closing = false, dismissedImage = null;
   function finishInteraction() {
